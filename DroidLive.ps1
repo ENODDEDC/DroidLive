@@ -72,12 +72,18 @@ $null = $worker.AddScript({
         do { Start-Sleep 2; $b = ((& $adb shell getprop sys.boot_completed 2>$null) -join "").Trim() } while ($b -ne "1")
 
         $gradlew = Join-Path $projectRoot "gradlew.bat"
+        $script:firstBuild = $true
         function Deploy {
-            Set-Status "Building and installing your app..."
+            if ($script:firstBuild) {
+                Set-Status "Building and installing your app...`nFirst build can take a few minutes - please wait."
+            } else {
+                Set-Status "Change detected - rebuilding and updating the app..."
+            }
             & $gradlew "-p" $projectRoot installDebug *> $null
             if ($LASTEXITCODE -ne 0) { Set-Status "Build failed - fix the error in your code and save again."; return }
             & $adb shell monkey -p $pkg -c android.intent.category.LAUNCHER 1 *> $null
-            Set-Status "Running. Watching for changes - edit and save to update."
+            $script:firstBuild = $false
+            Set-Status "App is LIVE on the emulator.`nWatching for changes - edit a file and save to update."
         }
         Deploy
 

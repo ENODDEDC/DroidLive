@@ -78,6 +78,11 @@ $sdkForProps = ($env:ANDROID_HOME -replace '\\', '\\')
 # --- 4. Wait for a device / emulator ---
 Write-Host "Waiting for a phone (USB debugging ON) or a running emulator..." -ForegroundColor Yellow
 & $adb wait-for-device
+# Wait until the device has fully booted (so install doesn't fail mid-boot).
+do {
+    Start-Sleep -Seconds 2
+    $boot = ((& $adb shell getprop sys.boot_completed 2>$null) -join "").Trim()
+} while ($boot -ne "1")
 $model = (& $adb shell getprop ro.product.model) -join ""
 Write-Host "Connected to: $model" -ForegroundColor Green
 

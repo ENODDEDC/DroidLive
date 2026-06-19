@@ -37,7 +37,7 @@ $avdmanager = Join-Path $sdk "cmdline-tools\latest\bin\avdmanager.bat"
 $emulator = Join-Path $sdk "emulator\emulator.exe"
 
 $image = "system-images;android-34;google_apis;x86_64"
-$avdName = "preview_pixel"
+$avdName = "DroidLive"
 
 if (-not (Test-Path $sdkmanager)) {
     Write-Host "SDK not found. Run android-sdk-setup.ps1 first." -ForegroundColor Red
@@ -48,21 +48,23 @@ Write-Host "Installing emulator + system image (large download, one-time)..." -F
 cmd /c "echo y| `"$sdkmanager`" --licenses" | Out-Null
 & $sdkmanager "emulator" $image
 
-$existing = & $avdmanager list avd
-if ($existing -notmatch $avdName) {
+$existing = (& $avdmanager list avd) -join "`n"
+if ($existing -notlike "*$avdName*") {
     Write-Host "Creating virtual device '$avdName'..." -ForegroundColor Cyan
     cmd /c "echo no| `"$avdmanager`" create avd -n $avdName -k `"$image`" --device pixel_6"
+} else {
+    Write-Host "Virtual device '$avdName' already exists." -ForegroundColor Green
 }
 
 $adb = Join-Path $sdk "platform-tools\adb.exe"
 
 Write-Host "Starting emulator '$avdName' in its own window..." -ForegroundColor Green
-# swiftshader_indirect = software graphics, the most reliable (avoids the
-# white/black-screen problem on machines without strong GPU drivers).
+# -gpu host = use your real graphics card (much faster than software rendering).
+# If you ever get a white/black screen, change "host" to "swiftshader_indirect".
 # -scale shrinks the window so the whole phone fits on a laptop screen.
 Start-Process -FilePath $emulator -ArgumentList @(
     "-avd", $avdName,
-    "-gpu", "swiftshader_indirect",
+    "-gpu", "host",
     "-no-snapshot-load",
     "-no-boot-anim",
     "-no-metrics",
